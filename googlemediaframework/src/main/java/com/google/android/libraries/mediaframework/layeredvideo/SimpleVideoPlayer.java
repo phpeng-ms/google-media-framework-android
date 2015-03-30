@@ -212,6 +212,14 @@ public class SimpleVideoPlayer {
   }
 
   /**
+   * Set the timeout duration before hiding player controls after they are shown.
+   * @param timeoutInMilliseconds Timeout duration in milliseconds
+   */
+  public void setHideTimeout(int timeoutInMilliseconds) {
+    playbackControlLayer.setHideTimeout(timeoutInMilliseconds);
+  }
+
+  /**
    * When mutliple surface layers are used (ex. in the case of ad playback), one layer must be
    * overlaid on top of another. This method sends this player's surface layer to the background
    * so that other surface layers can be overlaid on top of it.
