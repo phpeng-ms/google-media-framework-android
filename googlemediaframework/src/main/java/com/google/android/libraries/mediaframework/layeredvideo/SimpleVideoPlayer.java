@@ -203,6 +203,15 @@ public class SimpleVideoPlayer {
   }
 
   /**
+   * Set whether or not to allow fullscreen mode screen rotation .
+   * @param allowRotation If true, allows screen rotation when in fullscreen mode. If false, lock
+   *                      screen orientation into landscape mode.
+   */
+  public void setAllowFullscreenRotation(boolean allowRotation) {
+    playbackControlLayer.setAllowFullscreenRotation(allowRotation);
+  }
+
+  /**
    * When mutliple surface layers are used (ex. in the case of ad playback), one layer must be
    * overlaid on top of another. This method sends this player's surface layer to the background
    * so that other surface layers can be overlaid on top of it.

@@ -375,6 +375,11 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
    */
   private FrameLayout view;
 
+  /**
+   * Whether or not to allow screen rotation while in fullscreen mode
+   */
+  private boolean allowFullscreenModeRotation;
+
   public PlaybackControlLayer(String videoTitle) {
     this(videoTitle, null);
   }
@@ -384,6 +389,7 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
     this.canSeek = true;
     this.fullscreenCallback = fullscreenCallback;
     this.shouldBePlaying = false;
+    this.allowFullscreenModeRotation = false;
     actionButtons = new ArrayList<ImageButton>();
   }
 
@@ -521,7 +527,11 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
       isFullscreen = false;
     } else {
       fullscreenCallback.onGoToFullscreen();
-      activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+      if (allowFullscreenModeRotation) {
+        activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+      } else {
+        activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+      }
 
       activity.getWindow().getDecorView().setSystemUiVisibility(
           View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
@@ -814,6 +824,15 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
     if (videoTitleView != null) {
       videoTitleView.setText(title);
     }
+  }
+
+  /**
+   * Set whether or not to allow fullscreen mode screen rotation.
+   * @param allowRotation If true, allows screen rotation when in fullscreen mode. If false, lock
+   *                      screen orientation into landscape mode.
+   */
+  public void setAllowFullscreenRotation(boolean allowRotation) {
+    allowFullscreenModeRotation = allowRotation;
   }
 
   /**
