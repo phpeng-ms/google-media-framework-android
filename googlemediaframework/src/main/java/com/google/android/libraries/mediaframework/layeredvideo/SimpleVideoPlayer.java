@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.SeekBar;
 
 import com.google.android.libraries.mediaframework.exoplayerextensions.ExoplayerWrapper;
 import com.google.android.libraries.mediaframework.exoplayerextensions.Video;
@@ -129,6 +130,14 @@ public class SimpleVideoPlayer {
                               String contentDescription,
                               View.OnClickListener onClickListener) {
     playbackControlLayer.addActionButton(activity, icon, contentDescription, onClickListener);
+  }
+
+  /**
+   * Add an additional listener for seekbar changes.
+   * @param listener Listen to seekbar change events.
+   */
+  public void addOnSeekBarChangedListener(SeekBar.OnSeekBarChangeListener listener) {
+    playbackControlLayer.addOnSeekBarChangedListener(listener);
   }
 
   /**

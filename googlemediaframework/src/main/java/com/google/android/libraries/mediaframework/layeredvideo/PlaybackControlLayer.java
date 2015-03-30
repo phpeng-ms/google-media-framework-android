@@ -220,6 +220,11 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
   private List<ImageButton> actionButtons;
 
   /**
+   * List of additional seek bar change listeners.
+   */
+  private List<SeekBar.OnSeekBarChangeListener> seekBarChangeListeners;
+
+  /**
    * Whether the playback control layer is visible.
    */
   private boolean isVisible;
@@ -417,7 +422,8 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
     this.shouldBePlaying = false;
     this.allowFullscreenModeRotation = false;
     this.hideTimeout = DEFAULT_TIMEOUT_MS;
-    actionButtons = new ArrayList<ImageButton>();
+    this.actionButtons = new ArrayList<ImageButton>();
+    this.seekBarChangeListeners = new ArrayList<SeekBar.OnSeekBarChangeListener>();
   }
 
   /**
@@ -459,6 +465,14 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
       updateActionButtons();
       updateColors();
     }
+  }
+
+  /**
+   * Add an additional listener for seekbar changes.
+   * @param listener Listen to seekbar change events.
+   */
+  public void addOnSeekBarChangedListener(SeekBar.OnSeekBarChangeListener listener) {
+    seekBarChangeListeners.add(listener);
   }
 
   @Override
@@ -624,7 +638,8 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
           .setDuration(FADE_OUT_DURATION_MS)
           .setListener(new Animator.AnimatorListener() {
             @Override
-            public void onAnimationStart(Animator animation) {}
+            public void onAnimationStart(Animator animation) {
+            }
 
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -638,10 +653,12 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
             }
 
             @Override
-            public void onAnimationCancel(Animator animation) {}
+            public void onAnimationCancel(Animator animation) {
+            }
 
             @Override
-            public void onAnimationRepeat(Animator animation) {}
+            public void onAnimationRepeat(Animator animation) {
+            }
           });
     }
   }
@@ -933,6 +950,10 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
     seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
       @Override
       public void onProgressChanged(SeekBar seekBar, int progress, boolean fromuser) {
+        for (SeekBar.OnSeekBarChangeListener listener : seekBarChangeListeners) {
+          listener.onProgressChanged(seekBar, progress, fromuser);
+        }
+
         if (!fromuser || !canSeek) {
           // Ignore programmatic changes to seek bar position.
           // Ignore changes to seek bar position is seeking is not enabled.
@@ -950,6 +971,10 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
 
       @Override
       public void onStartTrackingTouch(SeekBar seekBar) {
+        for (SeekBar.OnSeekBarChangeListener listener : seekBarChangeListeners) {
+          listener.onStartTrackingTouch(seekBar);
+        }
+
         show(0);
         isSeekbarDragging = true;
         handler.removeMessages(SHOW_PROGRESS);
@@ -957,6 +982,10 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
 
       @Override
       public void onStopTrackingTouch(SeekBar seekBar) {
+        for (SeekBar.OnSeekBarChangeListener listener : seekBarChangeListeners) {
+          listener.onStopTrackingTouch(seekBar);
+        }
+
         isSeekbarDragging = false;
         updateProgress();
         updatePlayPauseButton();
