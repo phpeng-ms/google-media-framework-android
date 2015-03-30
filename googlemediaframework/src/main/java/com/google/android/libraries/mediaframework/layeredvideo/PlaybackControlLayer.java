@@ -194,6 +194,27 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
   private static final int SHOW_PROGRESS = 2;
 
   /**
+   * System UI flags to use in non-fullscreen mode, showing system UI
+   */
+  private static final int SYSTEM_UI_FLAGS_NON_FULLSCREEN = 0;
+
+  /**
+   * System UI flags to use in fullscreen mode, hiding system UI
+   */
+  private static final int SYSTEM_UI_FLAGS_FULLSCREEN_HIDE =
+      View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+      | View.SYSTEM_UI_FLAG_FULLSCREEN;
+
+  /**
+   * System UI flags to use in fullscreen mode, showing system UI
+   */
+  private static final int SYSTEM_UI_FLAGS_FULLSCREEN_FORCE_SHOW =
+      View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+
+  /**
    * List of image buttons which are displayed in the right side of the top chrome.
    */
   private List<ImageButton> actionButtons;
@@ -517,9 +538,6 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
       fullscreenCallback.onReturnFromFullscreen();
       activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
 
-      // Make the status bar and navigation bar visible again.
-      activity.getWindow().getDecorView().setSystemUiVisibility(0);
-
       container.setLayoutParams(originalContainerLayoutParams);
 
       fullscreenButton.setImageResource(R.drawable.ic_action_full_screen);
@@ -532,9 +550,6 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
       } else {
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
       }
-
-      activity.getWindow().getDecorView().setSystemUiVisibility(
-          View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
 
       // Whenever the status bar and navigation bar appear, we want the playback controls to
       // appear as well.
@@ -561,6 +576,8 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
 
       isFullscreen = true;
     }
+
+    updateSystemUi();
   }
 
   /**
@@ -609,12 +626,7 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
               playbackControlRootView.setVisibility(View.INVISIBLE);
               container.removeView(view);
 
-              // Make sure that the status bar and navigation bar are hidden when the playback
-              // controls are hidden.
-              if (isFullscreen) {
-                getLayerManager().getActivity().getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
-              }
+              updateSystemUi();
               handler.removeMessages(SHOW_PROGRESS);
               isVisible = false;
             }
@@ -654,6 +666,7 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
       isVisible = true;
     }
     updatePlayPauseButton();
+    updateSystemUi(true);
 
     handler.sendEmptyMessage(SHOW_PROGRESS);
 
@@ -833,6 +846,32 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
    */
   public void setAllowFullscreenRotation(boolean allowRotation) {
     allowFullscreenModeRotation = allowRotation;
+  }
+
+  /**
+   * Update the system UI visibility.
+   */
+  private void updateSystemUi() {
+    updateSystemUi(false);
+  }
+
+  /**
+   * Update the system UI visibility.
+   * @param forceShow If true and in fullscreen mode, force show the system UI.
+   *                  Ignored if not in fullscreen mode.
+   */
+  private void updateSystemUi(boolean forceShow) {
+    int systemUiFlags;
+    if (isFullscreen) {
+      if (forceShow) {
+        systemUiFlags = SYSTEM_UI_FLAGS_FULLSCREEN_FORCE_SHOW;
+      } else {
+        systemUiFlags = SYSTEM_UI_FLAGS_FULLSCREEN_HIDE;
+      }
+    } else {
+      systemUiFlags = SYSTEM_UI_FLAGS_NON_FULLSCREEN;
+    }
+    getLayerManager().getActivity().getWindow().getDecorView().setSystemUiVisibility(systemUiFlags);
   }
 
   /**
