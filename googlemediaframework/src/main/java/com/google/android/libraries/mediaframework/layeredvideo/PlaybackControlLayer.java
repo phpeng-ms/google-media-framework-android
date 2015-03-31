@@ -34,12 +34,15 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.google.android.exoplayer.ExoPlayer;
 import com.google.android.exoplayer.util.PlayerControl;
 import com.google.android.libraries.mediaframework.R;
+import com.google.android.libraries.mediaframework.exoplayerextensions.ExoplayerWrapper;
 import com.google.android.libraries.mediaframework.exoplayerextensions.PlayerControlCallback;
 
 import java.lang.ref.WeakReference;
@@ -345,6 +348,11 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
   private ImageButton pausePlayButton;
 
   /**
+   * Displays the loading progress bar when the video is buffering.
+   */
+  private ProgressBar loadingSpinner;
+
+  /**
    * Displays a track and a thumb which can be used to seek to different time points in the video.
    */
   private SeekBar seekBar;
@@ -376,6 +384,7 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
 
   /**
    * This is the root view which contains all other views that make up the playback control layer.
+   * This does not include the pause/play button or the loading spinner.
    * It can be tinted by setting the chrome color.
    */
   private FrameLayout playbackControlRootView;
@@ -410,6 +419,33 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
    * How long to show the playback controls before hiding them, in milliseconds.
    */
   private int hideTimeout;
+
+  /**
+   * When a state change happens, update the loading progress bar visibility.
+   */
+  private ExoplayerWrapper.PlaybackListener playbackListener = new ExoplayerWrapper.PlaybackListener() {
+    @Override
+    public void onStateChanged(boolean playWhenReady, int playbackState) {
+      if (loadingSpinner != null && pausePlayButton != null && playbackControlRootView != null) {
+        // If in a loading state and playback is not paused, show loading spinner
+        if (playWhenReady && playbackState != ExoPlayer.STATE_READY && playbackState != ExoPlayer.STATE_ENDED) {
+          loadingSpinner.setVisibility(View.VISIBLE);
+          pausePlayButton.setAlpha(0f);
+        } else {
+          loadingSpinner.setVisibility(View.INVISIBLE);
+          if (playbackControlRootView.getVisibility() == View.VISIBLE) {
+            pausePlayButton.setAlpha(1.0f);
+          }
+        }
+      }
+    }
+
+    @Override
+    public void onError(Exception e) {}
+
+    @Override
+    public void onVideoSizeChanged(int width, int height, float pixelWidthAspectRatio) {}
+  };
 
   public PlaybackControlLayer(String videoTitle) {
     this(videoTitle, null);
@@ -501,7 +537,7 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
       logoImageView.setImageDrawable(logoDrawable);
     }
 
-    getLayerManager().getContainer().setOnClickListener(new View.OnClickListener() {
+    layerManager.getContainer().setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
         if (isVisible) {
@@ -511,9 +547,12 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
         }
       }
     });
+    layerManager.getExoplayerWrapper().addListener(playbackListener);
 
     // Make the view hidden initially. It will be made visible again in the show(timeout) method.
     playbackControlRootView.setVisibility(View.INVISIBLE);
+    pausePlayButton.setVisibility(View.INVISIBLE);
+    loadingSpinner.setVisibility(View.VISIBLE);
 
     return view;
   }
@@ -645,7 +684,7 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
             public void onAnimationEnd(Animator animation) {
               isFadingOut = false;
               playbackControlRootView.setVisibility(View.INVISIBLE);
-              container.removeView(view);
+              pausePlayButton.setVisibility(View.INVISIBLE);
 
               updateSystemUi();
               handler.removeMessages(SHOW_PROGRESS);
@@ -660,6 +699,12 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
             public void onAnimationRepeat(Animator animation) {
             }
           });
+
+      if (loadingSpinner.getVisibility() != View.VISIBLE) {
+        pausePlayButton.animate()
+            .alpha(0.0f)
+            .setDuration(FADE_OUT_DURATION_MS);
+      }
     }
   }
 
@@ -671,9 +716,13 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
    */
   public void show(int timeout) {
     if (!isVisible && getLayerManager().getContainer() != null) {
-      playbackControlRootView.setAlpha(1.0f);
       // Make the view visible.
+      playbackControlRootView.setAlpha(1.0f);
       playbackControlRootView.setVisibility(View.VISIBLE);
+      pausePlayButton.setVisibility(View.VISIBLE);
+      if (loadingSpinner.getVisibility() != View.VISIBLE) {
+        pausePlayButton.setAlpha(1.0f);
+      }
 
       updateProgress();
 
@@ -911,13 +960,14 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
   private void setupView() {
     // Bind fields to UI elements.
     pausePlayButton = (ImageButton) view.findViewById(R.id.pause);
+    loadingSpinner = (ProgressBar) view.findViewById(R.id.loading_spinner);
     fullscreenButton = (ImageButton) view.findViewById((R.id.fullscreen));
     seekBar = (SeekBar) view.findViewById(R.id.mediacontroller_progress);
     videoTitleView = (TextView) view.findViewById(R.id.video_title);
     endTime = (TextView) view.findViewById(R.id.time_duration);
     currentTime = (TextView) view.findViewById(R.id.time_current);
     logoImageView = (ImageView) view.findViewById(R.id.logo_image);
-    playbackControlRootView = (FrameLayout) view.findViewById(R.id.middle_section);
+    playbackControlRootView = (FrameLayout) view.findViewById(R.id.controls);
     topChrome = (RelativeLayout) view.findViewById(R.id.top_chrome);
     bottomChrome = (LinearLayout) view.findViewById(R.id.bottom_chrome);
     actionButtonsContainer = (LinearLayout) view.findViewById(R.id.actions_container);
@@ -1175,5 +1225,12 @@ public class PlaybackControlLayer implements Layer, PlayerControlCallback {
     }
 
     return position;
+  }
+
+  /**
+   * When you are finished using this object, call this method.
+   */
+  public void release() {
+    layerManager.getExoplayerWrapper().removeListener(playbackListener);
   }
 }

@@ -23,5 +23,6 @@ limitations under the License.
     <string name="seekbar">Seekbar</string>
     <string name="time_current">Current time</string>
     <string name="pause">Pause</string>
+    <string name="loading">Loading</string>
     <string name="logo_image">Logo image</string>
 </resources>

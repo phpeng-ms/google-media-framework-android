@@ -368,6 +368,7 @@ public class SimpleVideoPlayer {
    */
   public void release() {
     videoSurfaceLayer.release();
+    playbackControlLayer.release();
     layerManager.release();
   }
 
