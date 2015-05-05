@@ -172,6 +172,14 @@ public class SimpleVideoPlayer {
   }
 
   /**
+   * Move the seek head to the given position.
+   * @param positionMs A number of milliseconds after the start of the video.
+   */
+  public void seekTo(int positionMs) {
+    layerManager.getExoplayerWrapper().seekTo(positionMs);
+  }
+
+  /**
    * Returns the duration of the track in milliseconds or
    * {@link com.google.android.exoplayer.ExoPlayer#UNKNOWN_TIME} if the duration is unknown.
    */
